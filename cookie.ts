@@ -11,16 +11,29 @@ import { createSession, Data, Session } from "./main.ts";
 
 type CookieOptions = Omit<Cookie, "name" | "value">;
 
-function createCookieContainer<Value extends Data, Key extends string>(
+export interface CookieContainer<T extends Data> {
+  fromHeaders: (headers: Headers) => Promise<Session<T>>;
+  toHeaders: (headers: Headers, session: Session<T>) => Promise<Headers>;
+}
+
+export function createCookieContainer<Key extends string, Value extends Data>(
   cookieKey: Key,
-  cryptoKey: CryptoKey,
+  secret?: string,
   verifyOptions?: VerifyOptions,
   cookieOptions: CookieOptions = {}
 ) {
+  let s = secret;
+  if (!s) {
+    console.warn("no secret provided, not secret");
+    s = "not-secret";
+  }
+
+  const k = key(s);
+
   async function fromHeaders(headers: Headers) {
     const cookies = getCookies(headers);
     const jwt = cookies[cookieKey];
-    const payload = await verify(jwt, cryptoKey, verifyOptions);
+    const payload = await verify(jwt, await k, verifyOptions);
     const data: Partial<Value> = payload["data"] ?? {};
     const flashData: Partial<Value> = payload["__flash"] ?? {};
     return createSession(data, flashData);
@@ -30,7 +43,7 @@ function createCookieContainer<Value extends Data, Key extends string>(
     const value = await create(
       { alg: "HS512", typ: "JWT" },
       session.serlialize(),
-      cryptoKey
+      await k
     );
     const cookie: Cookie = {
       ...cookieOptions,
