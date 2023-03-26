@@ -1,11 +1,11 @@
 import { key } from "./key.ts";
 import {
+  Cookie,
   create,
-  verify,
   getCookies,
   setCookie,
+  verify,
   VerifyOptions,
-  Cookie,
 } from "./deps.ts";
 import { createSession, Data, Session } from "./main.ts";
 
@@ -13,15 +13,15 @@ type CookieOptions = Omit<Cookie, "name" | "value">;
 
 export interface CookieContainer<T extends Data> {
   fromHeaders: (headers: Headers) => Promise<Session<T>>;
-  toHeaders: (headers: Headers, session: Session<T>) => Promise<Headers>;
+  toHeaders: (headers: Headers, session: Session<T>) => Promise<void>;
 }
 
-export function createCookieContainer<Key extends string, Value extends Data>(
+export function createJWTContainer<Key extends string, Value extends Data>(
   cookieKey: Key,
   secret?: string,
   verifyOptions?: VerifyOptions,
   cookieOptions: CookieOptions = {}
-) {
+): CookieContainer<Value> {
   let s = secret;
   if (!s) {
     console.warn("no secret provided, not secret");
@@ -36,7 +36,7 @@ export function createCookieContainer<Key extends string, Value extends Data>(
     const payload = await verify(jwt, await k, verifyOptions);
     const data: Partial<Value> = payload["data"] ?? {};
     const flashData: Partial<Value> = payload["__flash"] ?? {};
-    return createSession(data, flashData);
+    return createSession<Value>(data, flashData);
   }
 
   async function toHeaders(headers: Headers, session: Session<Value>) {
@@ -50,7 +50,11 @@ export function createCookieContainer<Key extends string, Value extends Data>(
       name: cookieKey,
       value,
     };
-    return setCookie(headers, cookie);
+    try {
+      setCookie(headers, cookie);
+    } catch (e) {
+      console.error("failed to set cookie", e)
+    }
   }
 
   return { fromHeaders, toHeaders };

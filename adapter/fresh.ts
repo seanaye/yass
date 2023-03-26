@@ -1,9 +1,9 @@
-import { type CookieContainer } from "../cookie.ts";
-import { type Session, type Data, createSession } from "../main.ts";
+import { type CookieContainer } from "../container.ts";
+import { createSession, type Data, type Session } from "../main.ts";
 import { MiddlewareHandler } from "../deps.ts";
 
-export function createFreshCookieMiddleware<T extends Data>(
-  container: CookieContainer<T>
+export function createFreshMiddleware<T extends Data>(
+  container: CookieContainer<T>,
 ): MiddlewareHandler<{ session: Session<T> }> {
   return async function (req, ctx) {
     try {
@@ -20,5 +20,4 @@ export function createFreshCookieMiddleware<T extends Data>(
   };
 }
 
-export type Context<T extends Data> = { session: Session<T> }
-
+export type Context<T extends Data> = { session: Session<T> };

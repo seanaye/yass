@@ -4,6 +4,6 @@ export async function key(secret: string) {
     new TextEncoder().encode(secret),
     { name: "HMAC", hash: "SHA-512" },
     false,
-    ["sign", "verify"]
+    ["sign", "verify"],
   );
 }
